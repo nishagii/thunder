@@ -421,7 +421,9 @@ func (us *userService) UpdateUser(ctx context.Context, userID string, user *User
 
 		credentials, err := us.extractCredentials(user)
 		if err != nil {
-			capturedSvcErr = logErrorAndReturnServerError(logger, "Failed to extract credentials", err, log.String("id", userID))
+			capturedSvcErr = logErrorAndReturnServerError(
+				logger, "Failed to extract credentials", err, log.String("id", userID),
+			)
 			return errors.New("rollback for credential extraction error")
 		}
 

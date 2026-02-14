@@ -1556,7 +1556,6 @@ func TestUserService_DeleteUser(t *testing.T) {
 
 func TestUserService_UpdateUser(t *testing.T) {
 	userID := svcTestUserID1
-	testUserType := "employee"
 	updatedUser := User{ID: userID, OrganizationUnit: testOrgID, Type: testUserType,
 		Attributes: json.RawMessage(`{"updated":"true"}`)}
 
@@ -1635,7 +1634,9 @@ func TestUserService_UpdateUser_WithCredentials(t *testing.T) {
 	// Mock UpdateUser - should receive user WITHOUT password in attributes
 	storeMock.On("UpdateUser", mock.Anything, mock.MatchedBy(func(u *User) bool {
 		var attrs map[string]interface{}
-		json.Unmarshal(u.Attributes, &attrs)
+		if err := json.Unmarshal(u.Attributes, &attrs); err != nil {
+			return false
+		}
 		_, hasPassword := attrs["password"]
 		return u.ID == userID && !hasPassword // Password should be removed from attributes
 	})).Return(nil).Once()
@@ -1705,8 +1706,10 @@ func TestUserService_UpdateUser_ErrorPaths(t *testing.T) {
 		ouServiceMock.On("IsOrganizationUnitExists", testOrgID).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
 		userSchemaMock.On("GetUserSchemaByName", testUserType).
 			Return(&userschema.UserSchema{OrganizationUnitID: testOrgID}, (*serviceerror.ServiceError)(nil)).Maybe()
-		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
-		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
+		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
+		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
 
 		storeMock.On("UpdateUser", mock.Anything, mock.Anything).Return(nil).Once()
 		storeMock.On("GetCredentials", mock.Anything, userID).Return(User{}, Credentials{}, ErrUserNotFound).Once()
@@ -1743,8 +1746,10 @@ func TestUserService_UpdateUser_ErrorPaths(t *testing.T) {
 		ouServiceMock.On("IsOrganizationUnitExists", testOrgID).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
 		userSchemaMock.On("GetUserSchemaByName", testUserType).
 			Return(&userschema.UserSchema{OrganizationUnitID: testOrgID}, (*serviceerror.ServiceError)(nil)).Maybe()
-		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
-		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
+		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
+		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Maybe()
 
 		storeMock.On("UpdateUser", mock.Anything, mock.Anything).Return(errors.New("db connection lost")).Once()
 
@@ -1775,8 +1780,10 @@ func TestUserService_UpdateUser_ErrorPaths(t *testing.T) {
 		ouServiceMock.On("IsOrganizationUnitExists", testOrgID).Return(true, (*serviceerror.ServiceError)(nil)).Once()
 		userSchemaMock.On("GetUserSchemaByName", testUserType).
 			Return(&userschema.UserSchema{OrganizationUnitID: testOrgID}, (*serviceerror.ServiceError)(nil)).Once()
-		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Once()
-		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).Return(true, (*serviceerror.ServiceError)(nil)).Once()
+		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Once()
+		userSchemaMock.On("ValidateUserUniqueness", testUserType, mock.Anything, mock.Anything).
+			Return(true, (*serviceerror.ServiceError)(nil)).Once()
 
 		storeMock.On("UpdateUser", mock.Anything, mock.Anything).Return(nil).Once()
 
@@ -1808,7 +1815,8 @@ func TestUserService_UpdateUser_ErrorPaths(t *testing.T) {
 		userSchemaMock.On("GetUserSchemaByName", testUserType).
 			Return(&userschema.UserSchema{OrganizationUnitID: testOrgID}, (*serviceerror.ServiceError)(nil)).Maybe()
 		// Validation fails - schema validation error
-		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).Return(false, (*serviceerror.ServiceError)(nil)).Once()
+		userSchemaMock.On("ValidateUser", testUserType, mock.Anything).
+			Return(false, (*serviceerror.ServiceError)(nil)).Once()
 
 		service := &userService{
 			userStore: storeMock, ouService: ouServiceMock, userSchemaService: userSchemaMock, transactioner: txMock,
